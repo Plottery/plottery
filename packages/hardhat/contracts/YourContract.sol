@@ -55,7 +55,7 @@ contract Tix is ERC721, ERC721Enumerable {
 
 }
 
-contract YourContract is Ownable {
+contract Plottery is Ownable {
 
   // event SetPurpose(address sender, string purpose);
 
@@ -71,6 +71,7 @@ contract YourContract is Ownable {
 
   event Entered(uint256 indexed tixId);
   event Closed(uint256 indexed blockNumber);
+  event Target(uint16 target);
   event SendPrize(address indexed winner, uint256 amount);
 
   constructor() {
@@ -136,12 +137,17 @@ contract YourContract is Ownable {
 
   function _award(uint256 secret) internal {
     uint16 target = uint16(_rng(uint256(stashedHash), uint256(secret)) % 10000);
+    emit Target(target);
 
     for (uint i; i < entries.length; i++) {
       uint16 _entry = uint16(entries[i] % 10000);
       if (_entry > target && _entry - target < 5000) {
         // WINNAR IS U
         _sendPrize(entryOwners[entries[i]], 10 * 10**18);
+      } else if (entries[i] % 3 == 0) {
+        _sendPrize(entryOwners[entries[i]], 3 * 10**18);
+      } else if (entries[i] % 10 < 5) {
+        _sendPrize(entryOwners[entries[i]], 1 * 10**18);
       }
     }
   }

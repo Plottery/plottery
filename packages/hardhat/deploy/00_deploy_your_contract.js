@@ -9,7 +9,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
-  await deploy("YourContract", {
+  await deploy("Plottery", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
     // args: [ "Hello", ethers.utils.parseEther("1.5") ],
@@ -25,7 +25,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   });
 
   // Getting a previously deployed contract
-  const YourContract = await ethers.getContract("YourContract", deployer);
+  const Plottery = await ethers.getContract("Plottery", deployer);
   /*  await YourContract.setPurpose("Hello");
   
     To take ownership of yourContract using the ownable library uncomment next line and add the 
@@ -62,12 +62,12 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const tix = await ethers.getContract("Tix", deployer);
   const bitCorn = await ethers.getContract("BitCorn", deployer);
   await bitCorn.freeCorn();
-  await bitCorn.transfer(YourContract.address, ethers.utils.parseEther("10"));
+  await bitCorn.transfer(Plottery.address, ethers.utils.parseEther("10"));
   const me = "0x28E1499b7cE4861F9E24eEFBE171cea4Ab759865";
-  if (me != await YourContract.owner()) {
-    await YourContract.init(tix.address, bitCorn.address);
-    console.log('owner is ', await YourContract.owner());
-    await YourContract.transferOwnership(me);
+  if (me != await Plottery.owner()) {
+    await Plottery.init(tix.address, bitCorn.address);
+    console.log('owner is ', await Plottery.owner());
+    await Plottery.transferOwnership(me);
   }
 
   await tix.mint(me);
@@ -80,8 +80,8 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   // You don't want to verify on localhost
   if (chainId !== localChainId) {
     await run("verify:verify", {
-      address: YourContract.address,
-      contract: "contracts/YourContract.sol:YourContract",
+      address: Plottery.address,
+      contract: "contracts/YourContract.sol:Plottery",
       contractArguments: [],
     });
   }
