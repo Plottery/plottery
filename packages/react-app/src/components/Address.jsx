@@ -35,12 +35,14 @@ const blockExplorerLink = (address, blockExplorer) => blockExplorer || `https://
 
 export default function Address(props) {
   const { currentTheme } = useThemeSwitcher();
-  const address = props.value || props.address;
+  let address = props.value || props.address;
+  // console.log(address); // XXX quick hack to make non-address events not break shit
+  if (address && address.toString) address = address.toString();
   const ens = useLookupAddress(props.ensProvider, address);
   const ensSplit = ens && ens.split(".");
   const validEnsCheck = ensSplit && ensSplit[ensSplit.length - 1] === "eth";
   const etherscanLink = blockExplorerLink(address, props.blockExplorer);
-  let displayAddress = address?.substr(0, 6);
+  let displayAddress = address && address.substr ? address?.substr(0, 6) : '0';
 
   if (validEnsCheck) {
     displayAddress = ens;
