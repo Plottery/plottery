@@ -15,6 +15,14 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
     // args: [ "Hello", ethers.utils.parseEther("1.5") ],
     log: true,
   });
+  await deploy("BitCorn", {
+    from: deployer,
+    log: true,
+  });
+  await deploy("Tix", {
+    from: deployer,
+    log: true,
+  });
 
   // Getting a previously deployed contract
   const YourContract = await ethers.getContract("YourContract", deployer);
@@ -50,6 +58,23 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
    LibraryName: **LibraryAddress**
   });
   */
+
+  const tix = await ethers.getContract("Tix", deployer);
+  const bitCorn = await ethers.getContract("BitCorn", deployer);
+  await bitCorn.freeCorn();
+  await bitCorn.transfer(YourContract.address, ethers.utils.parseEther("10"));
+  const me = "0x28E1499b7cE4861F9E24eEFBE171cea4Ab759865";
+  if (me != await YourContract.owner()) {
+    await YourContract.init(tix.address, bitCorn.address);
+    console.log('owner is ', await YourContract.owner());
+    await YourContract.transferOwnership(me);
+  }
+
+  await tix.mint(me);
+  await tix.mint(me);
+  await tix.mint(me);
+  await tix.mint(me);
+  await tix.mint(me);
 
   // Verify your contracts with Etherscan
   // You don't want to verify on localhost
