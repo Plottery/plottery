@@ -246,7 +246,7 @@ function App(props) {
   ]);
 
   // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts, "YourContract", "purpose");
+  //const purpose = useContractReader(readContracts, "YourContract", "purpose");
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
@@ -452,7 +452,7 @@ function App(props) {
               }}
               to="/"
             >
-              YourContract
+              Plottery
             </Link>
           </Menu.Item>
           <Menu.Item key="/hints">
@@ -465,14 +465,14 @@ function App(props) {
               Hints
             </Link>
           </Menu.Item>
-          <Menu.Item key="/exampleui">
+          <Menu.Item key="/plotteryui">
             <Link
               onClick={() => {
-                setRoute("/exampleui");
+                setRoute("/plotteryui");
               }}
-              to="/exampleui"
+              to="/plotteryui"
             >
-              ExampleUI
+              Plottery UI
             </Link>
           </Menu.Item>
           <Menu.Item key="/mainnetdai">
@@ -506,7 +506,25 @@ function App(props) {
             */}
 
             <Contract
-              name="YourContract"
+              name="BitCorn"
+              price={price}
+              signer={userSigner}
+              provider={localProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+              contractConfig={contractConfig}
+            />
+            <Contract
+              name="Tix"
+              price={price}
+              signer={userSigner}
+              provider={localProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+              contractConfig={contractConfig}
+            />
+            <Contract
+              name="Plottery"
               price={price}
               signer={userSigner}
               provider={localProvider}
@@ -523,7 +541,7 @@ function App(props) {
               price={price}
             />
           </Route>
-          <Route path="/exampleui">
+          <Route path="/plotteryui">
             <ExampleUI
               address={address}
               userSigner={userSigner}
@@ -534,7 +552,6 @@ function App(props) {
               tx={tx}
               writeContracts={writeContracts}
               readContracts={readContracts}
-              purpose={purpose}
             />
           </Route>
           <Route path="/mainnetdai">
