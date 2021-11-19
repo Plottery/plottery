@@ -84,44 +84,69 @@ function GM({
     </div>)
 }
 
+function TixControl({
+  tokenId,
+  tx,
+  readContracts,
+  writeContracts,
+}) {
+  const [approved, setApproved] = useState(false);
+  const [entered, setEntered] = useState(false);
+
+  return (<div style={{clear: 'both'}}>
+      <div style={{display: 'inline-block'}}>
+        <h1>Ticket #{('0000' + tokenId).slice(-5)}</h1>
+      </div>
+    {approved ? 't':'f'}
+      <div style={{display: 'inline-block'}}>
+        <Button
+          className={'nes-btn ' + (approved ? '': 'is-success')}
+          disabled={approved ? true : false}
+          style={{ marginTop: 8 }}
+          onClick={async () => {
+            setApproved(true);
+            const result = tx(writeContracts.Tix.approve(readContracts.Plottery.address, tokenId), _dumpUpdate);
+            console.log("awaiting metamask/web3 confirm result...", result);
+            console.log(await result);
+          }}
+        >
+          Approve First
+        </Button>
+        <Button
+          className='nes-btn is-warning'
+          disabled={entered ? true : false}
+          style={{ marginTop: 8 }}
+          onClick={async () => {
+            setEntered(true);
+            const result = tx(writeContracts.Plottery.enter(tokenId), _dumpUpdate);
+            console.log("awaiting metamask/web3 confirm result...", result);
+            console.log(await result);
+          }}
+        >
+          Enter Drawing
+        </Button>
+      </div>
+    </div>);
+}
+
 function MyTix({
   address,
   userSigner,
   mainnetProvider,
   localProvider,
   yourLocalBalance,
-  price,
   tx,
   readContracts,
   writeContracts,
 }) {
   const tixBal = useContractReader(readContracts, "Tix", "balanceOf", [address]);
   const tix1 = useContractReader(readContracts, "Tix", "tokenOfOwnerByIndex", [address, 0]);
+  const tix = useContractReader(readContracts, "Plottery", "tixByAddress", [address]);
 
   return (<div>
     <div>You have {tixBal ? tixBal.toString() : '...'} TIX</div>
-    1st/next tix: { tix1 ? tix1.toString() : '...'}
+    { tix ? tix.map(tokenId => <TixControl tx={tx} readContracts={readContracts} writeContracts={writeContracts} key={tokenId} tokenId={tokenId} />) : ''}
 
-          <Button
-            style={{ marginTop: 8 }}
-            onClick={async () => {
-              const result = tx(writeContracts.Tix.approve(readContracts.Plottery.address, tix1), _dumpUpdate);
-              console.log("awaiting metamask/web3 confirm result...", result);
-              console.log(await result);
-            }}
-          >
-            Approve to play
-          </Button>
-          <Button
-            style={{ marginTop: 8 }}
-            onClick={async () => {
-              const result = tx(writeContracts.Plottery.enter(tix1), _dumpUpdate);
-              console.log("awaiting metamask/web3 confirm result...", result);
-              console.log(await result);
-            }}
-          >
-            Enter it
-          </Button>
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
@@ -175,17 +200,6 @@ function Foo({
             Donate 100 CORN to Jackpot
           </Button>
         <h4>Game on? {canEnter ? 'yes': 'no'}</h4>
-        {readContracts ? <MyTix 
-              address={address}
-              userSigner={userSigner}
-              mainnetProvider={mainnetProvider}
-              localProvider={localProvider}
-              yourLocalBalance={yourLocalBalance}
-              price={price}
-              tx={tx}
-              writeContracts={writeContracts}
-              readContracts={readContracts}
-          /> : ''}
       </div>);
 }
 
@@ -240,6 +254,9 @@ curl --request POST \
 
   */
 function GoldenTicket({ }) {
+  function rand() {
+    setNewNum(Math.floor(Math.random() * 10000));
+  }
   function draw() {
     const ctx = document.getElementById('canvas').getContext('2d');
     const img = new Image();
@@ -281,6 +298,9 @@ function GoldenTicket({ }) {
       });
       // TODO check errors
       const metadataRespJson = await metadataResponse.json();
+      if (metadataRespJson.response != 'OK') {
+        setNewMintErr(metadataRespJson.error);
+      }
       console.log('posted metadata: ', metadataRespJson);
 
       // 3. Finally mint NFT
@@ -299,18 +319,28 @@ function GoldenTicket({ }) {
       });
       // TODO check errors
       const nftRespJson = await nftResponse.json();
+      if (nftRespJson.response == 'NOK') {
+        setNewMintErr(nftRespJson.error);
+      }
       console.log('posted nft: ', nftRespJson);
+
+      setNewOSUrl(`https://testnets.opensea.io/assets/${myContract}/${newNum}`);
     });
   }
 
   const [newNum, setNewNum] = useState(9999);
   const [errNum, setErrNum] = useState(false);
+  const [newMintErr, setNewMintErr] = useState('OK');
+  const [newOSUrl, setNewOSUrl] = useState('');
+  // https://testnets.opensea.io/assets/0x3539a35349c755081c319f9dcb1d9f1acf57381d/1073
 
   return (
     <div>
       <canvas id='canvas' width='490' height='270' ></canvas>
       <h2>Choose a lucky number from 0 to 9999</h2>
-      <Input value={newNum}
+      <img src={ticketPng} width='50' />
+      <button className='nes-btn is-foo' onClick={() => rand()} >randomize</button>
+      <Input value={newNum} style={{ width: 250, fontSize: 42 }}
             onChange={e => {
               try {
                 setErrNum(false);
@@ -327,10 +357,28 @@ function GoldenTicket({ }) {
               }
             }}
       />
-      <button onClick={() => draw()} >draw</button>
-      <button onClick={() => mint()} >mint</button>
+      <button className='nes-btn is-warning' onClick={() => draw()} >draw</button>
+      <button className='nes-btn is-success' onClick={() => mint()} >mint</button>
+
+      <h3>{newMintErr}</h3>
+      <h2>View on OpenSea</h2>
+      <a href={newOSUrl}>link to #{newNum}</a>
     </div>
   );
+}
+
+
+function Punter({
+  address,
+  userSigner,
+  mainnetProvider,
+  localProvider,
+  yourLocalBalance,
+  price,
+  tx,
+  readContracts,
+  writeContracts,
+}) {
 }
 
 export default function ExampleUI({
@@ -350,6 +398,20 @@ export default function ExampleUI({
   return (
     <div>
       <GoldenTicket />
+      <Divider/>
+      <div className="nes-container is-rounded" style={{ padding: 16, width: "auto", margin: "auto", marginTop: 64, marginBottom: 64 }}>
+        {readContracts ? <MyTix 
+            address={address}
+            userSigner={userSigner}
+            mainnetProvider={mainnetProvider}
+            localProvider={localProvider}
+            yourLocalBalance={yourLocalBalance}
+            price={price}
+            tx={tx}
+            writeContracts={writeContracts}
+            readContracts={readContracts}
+        /> : ''}
+      </div>
       {/*
         ⚙️ Here is an example UI that displays and sets the purpose in your smart contract:
       */}
