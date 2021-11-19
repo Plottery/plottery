@@ -1,3 +1,12 @@
 .App {
   text-align: center;
 }
+
+@font-face {
+    font-family: "PressStart2P";
+    src: url("fonts/PressStart2P-Regular.ttf") format("truetype");
+}
+
+.App, body {
+    font-family: "PressStart2P";
+}

@@ -2,6 +2,7 @@ import Portis from "@portis/web3";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { Alert, Button, Col, Menu, Row } from "antd";
 import "antd/dist/antd.css";
+import "./nes.css";
 import Authereum from "authereum";
 import {
   useBalance,
@@ -452,17 +453,7 @@ function App(props) {
               }}
               to="/"
             >
-              Plottery
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/hints">
-            <Link
-              onClick={() => {
-                setRoute("/hints");
-              }}
-              to="/hints"
-            >
-              Hints
+              Debug Contracts
             </Link>
           </Menu.Item>
           <Menu.Item key="/plotteryui">
@@ -473,26 +464,6 @@ function App(props) {
               to="/plotteryui"
             >
               Plottery UI
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/mainnetdai">
-            <Link
-              onClick={() => {
-                setRoute("/mainnetdai");
-              }}
-              to="/mainnetdai"
-            >
-              Mainnet DAI
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/subgraph">
-            <Link
-              onClick={() => {
-                setRoute("/subgraph");
-              }}
-              to="/subgraph"
-            >
-              Subgraph
             </Link>
           </Menu.Item>
         </Menu>
