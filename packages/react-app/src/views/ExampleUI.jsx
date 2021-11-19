@@ -148,6 +148,7 @@ function Foo({
   const cornBal = useContractReader(readContracts, "BitCorn", "balanceOf", [address]);
   const jackpot = /*100*/ useContractReader(readContracts, "Plottery", "jackpot");
   const canEnter = /*true*/ useContractReader(readContracts, "Plottery", "canEnter");
+  const entryCount = useContractReader(readContracts, "Plottery", "entryCount");
 
   return (<div>
         <h4>Your BitCorns: {cornBal ? utils.formatEther(cornBal) : 'bitCorn.balanceOf'}</h4>
@@ -162,6 +163,7 @@ function Foo({
             Get Free Corn
           </Button>
         <h4>Jackpot: {jackpot ? utils.formatEther(jackpot) : 'bitCorn.balanceOf'} CORN</h4>
+        <h4>Tickets Entered in Round: {entryCount ? entryCount.toString() : '...'} tickets</h4>
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
@@ -187,6 +189,150 @@ function Foo({
       </div>);
 }
 
+import ticketPng from'../assets/goldenticket.png';
+
+/*
+step1 - assume already set up - just need to mint new tickets
+
+curl --request POST \
+  --url https://api.nftport.xyz/v0/contracts \
+  --header 'Authorization: ee53d0a8-345c-4655-86ac-41554d5ba968' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "chain": "rinkeby",
+  "name": "TiOne",
+  "symbol": "T1",
+  "owner_address": "0x7212f07cc038cC838B0B7F7AE236bf98dae221d4"
+}'
+
+
+{"response":"OK","chain":"rinkeby","transaction_hash":"0x2b9903d1116ab0f5fc9a6ec2ba41002c0d447446d3fd9aa415404e80c1393c0e","transaction_external_url":"https://rinkeby.etherscan.io/tx/0x2b9903d1116ab0f5fc9a6ec2ba41002c0d447446d3fd9aa415404e80c1393c0e","owner_address":"0x7212f07cc038cC838B0B7F7AE236bf98dae221d4","name":"TiOne","symbol":"T1"}
+
+- doesn't return contract address??
+
+
+step 2 - for a ticket
+curl --request POST \
+    --url 'https://api.nftport.xyz/v0/files' \
+    --header 'Authorization: ee53d0a8-345c-4655-86ac-41554d5ba968' \
+    --header 'Content-Type: multipart/form-data' \
+    --form 'file=@/Users/tomo/Downloads/goldenticket.png;type=image/png'
+
+{"response":"OK","ipfs_url":"https://ipfs.io/ipfs/QmXh4yqJU4hMJ1HPDosYqpYpBnTxZdBzop9TJp8uhc6xrS","file_name":"goldenticket.png","content_type":"image/png","file_size":4454,"file_size_mb":0.0042,"error":null}
+
+-- use generated ticket image data
+
+step 3 - use ipfs file
+curl --request POST \
+  --url https://api.nftport.xyz/v0/metadata \
+  --header 'Authorization: ee53d0a8-345c-4655-86ac-41554d5ba968' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "name": "My Tra",
+  "description": "This is my custom art piece",
+  "file_url": "https://ipfs.io/ipfs/QmXh4yqJU4hMJ1HPDosYqpYpBnTxZdBzop9TJp8uhc6xrS"
+}'
+
+{"response":"OK","metadata_uri":"ipfs://QmZ1Y2WrcwpzDkaGVbXhiffZvjuAgYyiAVaMbmqiT78uxH","name":"My Tra","description":"This is my custom art piece","file_url":"https://ipfs.io/ipfs/QmXh4yqJU4hMJ1HPDosYqpYpBnTxZdBzop9TJp8uhc6xrS","external_url":null,"animation_url":null,"custom_fields":null,"attributes":null,"error":null}
+
+
+
+
+  */
+function GoldenTicket({ }) {
+  function draw() {
+    const ctx = document.getElementById('canvas').getContext('2d');
+    const img = new Image();
+    img.src = ticketPng;
+    ctx.drawImage(img, 0, 0);
+    ctx.font = '60px PressStart2P';
+    ctx.fillText(('0000' + newNum).slice(-4), 128, 165);
+  }
+  function mint() {
+    // 1. Upload file to IPFS
+    const canvas = document.getElementById('canvas');
+
+    canvas.toBlob(async (blob) => {
+      let url = 'https://api.nftport.xyz/v0/files';
+      const formData = new FormData();
+      formData.append('file', blob, `tix${newNum}.png`);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'ee53d0a8-345c-4655-86ac-41554d5ba968',
+          //'Content-Type': 'multipart/form-data', // NO
+        },
+        body: formData
+      });
+      // TODO check errors
+      const fileRespJson = await response.json();
+      console.log('posted tix ipfs: ', fileRespJson);
+
+      // 2. Create metadata on IPFS
+      url = 'https://api.nftport.xyz/v0/metadata';
+      const metadataJson = `{ "name": "TIX ${newNum}", "description": "Plottery Ticket #${newNum}", "file_url": "${fileRespJson.ipfs_url}" }`;
+      const metadataResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'ee53d0a8-345c-4655-86ac-41554d5ba968',
+          'Content-Type': 'application/json',
+        },
+        body: metadataJson
+      });
+      // TODO check errors
+      const metadataRespJson = await metadataResponse.json();
+      console.log('posted metadata: ', metadataRespJson);
+
+      // 3. Finally mint NFT
+      url = 'https://api.nftport.xyz/v0/mints/customizable';
+      const chain = 'rinkeby'; // TODO
+      const myContract = '0x3539a35349c755081c319f9dcb1d9f1acf57381d';
+      const myAddress = '0x7212f07cc038cC838B0B7F7AE236bf98dae221d4'; // TODO use address
+      const nftJson = `{ "chain": "${chain}", "contract_address": "${myContract}", "metadata_uri": "${metadataRespJson.metadata_uri}", "mint_to_address": "${myAddress}", "token_id": "${newNum}" }`;
+      const nftResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'ee53d0a8-345c-4655-86ac-41554d5ba968',
+          'Content-Type': 'application/json',
+        },
+        body: nftJson
+      });
+      // TODO check errors
+      const nftRespJson = await nftResponse.json();
+      console.log('posted nft: ', nftRespJson);
+    });
+  }
+
+  const [newNum, setNewNum] = useState(9999);
+  const [errNum, setErrNum] = useState(false);
+
+  return (
+    <div>
+      <canvas id='canvas' width='490' height='270' ></canvas>
+      <h2>Choose a lucky number from 0 to 9999</h2>
+      <Input value={newNum}
+            onChange={e => {
+              try {
+                setErrNum(false);
+                let n = parseInt(e.target.value);
+                if (n < 0 || n > 9999) {
+                  console.log(`${n} is out of range`);
+                  setErrNum(true);
+                } else {
+                  setNewNum(n);
+                }
+              } catch(err) {
+                setErrNum(true);
+                console.log("BAD INPUT! ", e.target.vaue);
+              }
+            }}
+      />
+      <button onClick={() => draw()} >draw</button>
+      <button onClick={() => mint()} >mint</button>
+    </div>
+  );
+}
+
 export default function ExampleUI({
   address,
   userSigner,
@@ -198,18 +344,16 @@ export default function ExampleUI({
   readContracts,
   writeContracts,
 }) {
-  const [newPurpose, setNewPurpose] = useState("loading...");
-  const jackpot = /*100*/ useContractReader(readContracts, "Plottery", "jackpot");
-  const canEnter = /*true*/ useContractReader(readContracts, "Plottery", "canEnter");
   // TODO show how many current entries
   // TODO save timestamp of last time _open was called, that's how long game has been running
 
   return (
     <div>
+      <GoldenTicket />
       {/*
         ⚙️ Here is an example UI that displays and sets the purpose in your smart contract:
       */}
-      <div style={{ border: "1px solid #cccccc", padding: 16, width: 400, margin: "auto", marginTop: 64 }}>
+      <div style={{ border: "20px solid #000000", padding: 16, width: "auto", margin: "auto", marginTop: 64 }}>
         <h2>Plottery UI:</h2>
 
         {readContracts ? <Foo 
@@ -289,59 +433,6 @@ export default function ExampleUI({
         startBlock={1}
       />
 
-      <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 256 }}>
-        <Card>
-          Check out all the{" "}
-          <a
-            href="https://github.com/austintgriffith/scaffold-eth/tree/master/packages/react-app/src/components"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            📦 components
-          </a>
-        </Card>
-
-        <Card style={{ marginTop: 32 }}>
-          <div>
-            There are tons of generic components included from{" "}
-            <a href="https://ant.design/components/overview/" target="_blank" rel="noopener noreferrer">
-              🐜 ant.design
-            </a>{" "}
-            too!
-          </div>
-
-          <div style={{ marginTop: 8 }}>
-            <Button type="primary">Buttons</Button>
-          </div>
-
-          <div style={{ marginTop: 8 }}>
-            <SyncOutlined spin /> Icons
-          </div>
-
-          <div style={{ marginTop: 8 }}>
-            Date Pickers?
-            <div style={{ marginTop: 2 }}>
-              <DatePicker onChange={() => {}} />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 32 }}>
-            <Slider range defaultValue={[20, 50]} onChange={() => {}} />
-          </div>
-
-          <div style={{ marginTop: 32 }}>
-            <Switch defaultChecked onChange={() => {}} />
-          </div>
-
-          <div style={{ marginTop: 32 }}>
-            <Progress percent={50} status="active" />
-          </div>
-
-          <div style={{ marginTop: 32 }}>
-            <Spin />
-          </div>
-        </Card>
-      </div>
     </div>
   );
 }
