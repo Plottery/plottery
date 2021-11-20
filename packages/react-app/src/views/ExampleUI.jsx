@@ -2,11 +2,12 @@ import { SyncOutlined } from "@ant-design/icons";
 import { utils, BigNumber } from "ethers";
 import { Button, Card, DatePicker, Divider, Input, Progress, Slider, Spin, Switch } from "antd";
 import React, { useState } from "react";
-import { Address, Balance, Events } from "../components";
+import { Address, Balance, Events, SendPrizeEvents } from "../components";
 import {
   useContractLoader,
   useContractReader,
   useUserProviderAndSigner,
+  useOnBlock,
 } from "eth-hooks";
 
 function _dumpUpdate(update) {
@@ -41,9 +42,17 @@ function GM({
   const [errSecret, setErrSecret] = useState(false);
 
   const hashfn = (secret, address) => utils.solidityKeccak256(['uint256', 'address'], [secret, address]);
+  const futureBlockNumber = useContractReader(readContracts, "Plottery", "futureBlockNumber");
+  
+  //useOnBlock(mainnetProvider, () => {
+  //  console.log(`⛓ A new mainnet block is here: ${mainnetProvider._lastBlockNumber}`);
+  useOnBlock(localProvider, () => {
+    console.log(`⛓ A new local block is here: ${localProvider._lastBlockNumber}`);
+  });
+
 
   return (<div>
-    <div>You are Game Master</div>
+    <div>You are the dealer</div>
           Secret must be valid BigNumber text {errSecret ? 'ERROR! ' :''}: <Input
             onChange={e => {
               try {
@@ -71,6 +80,7 @@ function GM({
           </Button>
 
           <Divider/>
+          <span>Wait until block {futureBlockNumber ? futureBlockNumber.toString() : '?'} to reveal</span>
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
@@ -95,9 +105,8 @@ function TixControl({
 
   return (<div style={{clear: 'both'}}>
       <div style={{display: 'inline-block'}}>
-        <h1>Ticket #{('0000' + tokenId).slice(-5)}</h1>
+        <h2>Ticket #{('0000' + tokenId).slice(-5)}</h2>
       </div>
-    {approved ? 't':'f'}
       <div style={{display: 'inline-block'}}>
         <Button
           className={'nes-btn ' + (approved ? '': 'is-success')}
@@ -129,6 +138,100 @@ function TixControl({
     </div>);
 }
 
+function RecentWinners({
+  address,
+  userSigner,
+  mainnetProvider,
+  localProvider,
+  yourLocalBalance,
+  tx,
+  readContracts,
+  writeContracts,
+}) {
+  return (<div>
+        <SendPrizeEvents
+          contracts={readContracts}
+          contractName="Plottery"
+          ensProvider={mainnetProvider}
+          eventName="SendPrize"
+          localProvider={localProvider}
+          mainnetProvider={mainnetProvider}
+          startBlock={1}
+        />
+    </div>);
+}
+function PlayGame({
+  address,
+  userSigner,
+  mainnetProvider,
+  localProvider,
+  yourLocalBalance,
+  tx,
+  readContracts,
+  writeContracts,
+}) {
+  const jackpot = /*100*/ useContractReader(readContracts, "Plottery", "jackpot");
+  const canEnter = /*true*/ useContractReader(readContracts, "Plottery", "canEnter");
+  const entryCount = useContractReader(readContracts, "Plottery", "entryCount");
+
+  return (<div>
+      <div>
+        <section className={"nes-container " + (canEnter ? '' : "is-dark")}>
+            <section className="message -right" style={{marginTop: -50}}>
+              <div className={"nes-balloon from-right " + (canEnter ? '' : "is-dark")} style={{margin: 20}}>
+                <p>{canEnter ? 'GM. Would you like to play a game?' : 'Stand by for round to close.'}</p>
+              </div>
+              <i className="nes-bcrikko" style={{top: 56}}></i>
+            </section>
+        </section>
+        <div className="nes-container with-title " style={{marginTop: 20}}>
+          <p className="title">Jackpot</p>
+          <progress className="nes-progress is-success" value="50" max="100"></progress>
+          <div>
+            <span style={{fontSize: 56}}>{ jackpot ? utils.formatEther(jackpot) : '..'}</span> <i className="nes-icon coin is-large"></i>
+          </div>
+          <progress className="nes-progress is-pattern" value="10" max="100"></progress>
+          <div>
+            <span >Currently Entered Tickets: {entryCount ? entryCount.toString() : '...'}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>);
+}
+
+function TixForSale({
+  address,
+  userSigner,
+  mainnetProvider,
+  localProvider,
+  yourLocalBalance,
+  tx,
+  readContracts,
+  writeContracts,
+}) {
+  const tixForSale = useContractReader(readContracts, "Plottery", "tixForSale");
+
+  return (<div>
+      { tixForSale ? tixForSale.map(tokenId => (<div>
+          <div style={{display: 'inline-block'}}>
+            <h2>Ticket #{('0000' + tokenId).slice(-5)}</h2>
+          </div>
+
+          <Button
+            style={{ marginTop: 8 }}
+            onClick={async () => {
+              const result = tx(writeContracts.Plottery.buyTix(tokenId), _dumpUpdate);
+              console.log("awaiting metamask/web3 confirm result...", result);
+              console.log(await result);
+            }}
+          >
+            Buy 
+          </Button>
+        </div>)
+      ) : ''}
+    </div>);
+}
 function MyTix({
   address,
   userSigner,
@@ -142,11 +245,25 @@ function MyTix({
   const tixBal = useContractReader(readContracts, "Tix", "balanceOf", [address]);
   const tix1 = useContractReader(readContracts, "Tix", "tokenOfOwnerByIndex", [address, 0]);
   const tix = useContractReader(readContracts, "Plottery", "tixByAddress", [address]);
+  const tixForSaleCount = useContractReader(readContracts, "Plottery", "tixForSaleCount");
 
   return (<div>
     <div>You have {tixBal ? tixBal.toString() : '...'} TIX</div>
     { tix ? tix.map(tokenId => <TixControl tx={tx} readContracts={readContracts} writeContracts={writeContracts} key={tokenId} tokenId={tokenId} />) : ''}
 
+        <div>
+          <Button
+            style={{ marginTop: 8 }}
+            onClick={async () => {
+              const result = tx(writeContracts.BitCorn.approve(readContracts.Plottery.address, utils.parseEther("10")), _dumpUpdate);
+              console.log("awaiting metamask/web3 confirm result...", result);
+              console.log(await result);
+            }}
+          >
+            Approve Corn to Buy
+          </Button>
+        </div>
+        <div>
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
@@ -155,8 +272,25 @@ function MyTix({
               console.log(await result);
             }}
           >
-            I need more tickets (TODO add to jackpot)
+            Buy New Ticket
           </Button>
+        </div>
+
+        <div>
+          Previously owned tickets for sale: ({tixForSaleCount ? tixForSaleCount.toString() : 0})
+        </div>
+        <div>
+          <TixForSale 
+            address={address}
+            userSigner={userSigner}
+            mainnetProvider={mainnetProvider}
+            localProvider={localProvider}
+            yourLocalBalance={yourLocalBalance}
+            tx={tx}
+            writeContracts={writeContracts}
+            readContracts={readContracts}
+          />
+        </div>
     </div>);
 }
 function Foo({
@@ -205,54 +339,6 @@ function Foo({
 
 import ticketPng from'../assets/goldenticket.png';
 
-/*
-step1 - assume already set up - just need to mint new tickets
-
-curl --request POST \
-  --url https://api.nftport.xyz/v0/contracts \
-  --header 'Authorization: ee53d0a8-345c-4655-86ac-41554d5ba968' \
-  --header 'Content-Type: application/json' \
-  --data '{
-  "chain": "rinkeby",
-  "name": "TiOne",
-  "symbol": "T1",
-  "owner_address": "0x7212f07cc038cC838B0B7F7AE236bf98dae221d4"
-}'
-
-
-{"response":"OK","chain":"rinkeby","transaction_hash":"0x2b9903d1116ab0f5fc9a6ec2ba41002c0d447446d3fd9aa415404e80c1393c0e","transaction_external_url":"https://rinkeby.etherscan.io/tx/0x2b9903d1116ab0f5fc9a6ec2ba41002c0d447446d3fd9aa415404e80c1393c0e","owner_address":"0x7212f07cc038cC838B0B7F7AE236bf98dae221d4","name":"TiOne","symbol":"T1"}
-
-- doesn't return contract address??
-
-
-step 2 - for a ticket
-curl --request POST \
-    --url 'https://api.nftport.xyz/v0/files' \
-    --header 'Authorization: ee53d0a8-345c-4655-86ac-41554d5ba968' \
-    --header 'Content-Type: multipart/form-data' \
-    --form 'file=@/Users/tomo/Downloads/goldenticket.png;type=image/png'
-
-{"response":"OK","ipfs_url":"https://ipfs.io/ipfs/QmXh4yqJU4hMJ1HPDosYqpYpBnTxZdBzop9TJp8uhc6xrS","file_name":"goldenticket.png","content_type":"image/png","file_size":4454,"file_size_mb":0.0042,"error":null}
-
--- use generated ticket image data
-
-step 3 - use ipfs file
-curl --request POST \
-  --url https://api.nftport.xyz/v0/metadata \
-  --header 'Authorization: ee53d0a8-345c-4655-86ac-41554d5ba968' \
-  --header 'Content-Type: application/json' \
-  --data '{
-  "name": "My Tra",
-  "description": "This is my custom art piece",
-  "file_url": "https://ipfs.io/ipfs/QmXh4yqJU4hMJ1HPDosYqpYpBnTxZdBzop9TJp8uhc6xrS"
-}'
-
-{"response":"OK","metadata_uri":"ipfs://QmZ1Y2WrcwpzDkaGVbXhiffZvjuAgYyiAVaMbmqiT78uxH","name":"My Tra","description":"This is my custom art piece","file_url":"https://ipfs.io/ipfs/QmXh4yqJU4hMJ1HPDosYqpYpBnTxZdBzop9TJp8uhc6xrS","external_url":null,"animation_url":null,"custom_fields":null,"attributes":null,"error":null}
-
-
-
-
-  */
 function GoldenTicket({ }) {
   function rand() {
     setNewNum(Math.floor(Math.random() * 10000));
@@ -333,10 +419,32 @@ function GoldenTicket({ }) {
   const [newMintErr, setNewMintErr] = useState('OK');
   const [newOSUrl, setNewOSUrl] = useState('');
   // https://testnets.opensea.io/assets/0x3539a35349c755081c319f9dcb1d9f1acf57381d/1073
+  const airdropees = ['0x7212f07cc038cC838B0B7F7AE236bf98dae221d4', '0x0fbFC78830Bf380A6F771F568Bf20bf0e20d6D74'];
+  const [newRecipient, setNewRecipient] = useState(airdropees[0]);
 
   return (
     <div>
       <canvas id='canvas' width='490' height='270' ></canvas>
+      <div>
+        <h2>Choose airdrop recipient</h2>
+        <label style={{display: 'block'}}>
+          <input type="radio" className="nes-radio" name="answer" checked
+              onClick={e => {
+                console.log(e, e.target);
+                setNewRecipient(e.target.value);
+          }}/>
+          <span>{airdropees[0]}</span>
+        </label>
+        <label style={{display: 'block'}}>
+          <input type="radio" className="nes-radio" name="answer" 
+              onClick={e => {
+                setNewRecipient(e.target.value);
+          }}/>
+          <span>{airdropees[1]}</span>
+        </label>
+      </div>
+    <div>minting to {newRecipient}</div>
+
       <h2>Choose a lucky number from 0 to 9999</h2>
       <img src={ticketPng} width='50' />
       <button className='nes-btn is-foo' onClick={() => rand()} >randomize</button>
@@ -345,6 +453,10 @@ function GoldenTicket({ }) {
               try {
                 setErrNum(false);
                 let n = parseInt(e.target.value);
+                if (isNaN(n)) {
+                  console.log('NaN for ', e.target.value);
+                  n = 0;
+                }
                 if (n < 0 || n > 9999) {
                   console.log(`${n} is out of range`);
                   setErrNum(true);
@@ -400,6 +512,28 @@ export default function ExampleUI({
       <GoldenTicket />
       <Divider/>
       <div className="nes-container is-rounded" style={{ padding: 16, width: "auto", margin: "auto", marginTop: 64, marginBottom: 64 }}>
+        {readContracts ? <PlayGame 
+            address={address}
+            userSigner={userSigner}
+            mainnetProvider={mainnetProvider}
+            localProvider={localProvider}
+            yourLocalBalance={yourLocalBalance}
+            price={price}
+            tx={tx}
+            writeContracts={writeContracts}
+            readContracts={readContracts}
+        /> : ''}
+        {readContracts ? <RecentWinners 
+            address={address}
+            userSigner={userSigner}
+            mainnetProvider={mainnetProvider}
+            localProvider={localProvider}
+            yourLocalBalance={yourLocalBalance}
+            price={price}
+            tx={tx}
+            writeContracts={writeContracts}
+            readContracts={readContracts}
+        /> : ''}
         {readContracts ? <MyTix 
             address={address}
             userSigner={userSigner}
@@ -415,8 +549,8 @@ export default function ExampleUI({
       {/*
         ⚙️ Here is an example UI that displays and sets the purpose in your smart contract:
       */}
-      <div style={{ border: "20px solid #000000", padding: 16, width: "auto", margin: "auto", marginTop: 64 }}>
-        <h2>Plottery UI:</h2>
+      <div style={{ border: "20px solid red", padding: 16, width: "auto", margin: "auto", marginTop: 64 }}>
+        <h2>Plottery Dealer UI:</h2>
 
         {readContracts ? <Foo 
               address={address}
@@ -440,21 +574,6 @@ export default function ExampleUI({
               writeContracts={writeContracts}
               readContracts={readContracts}
           /> : ''}
-        <Divider />
-        Your Address:
-        <Address address={address} ensProvider={mainnetProvider} fontSize={16} />
-        <Divider />
-        {/* use utils.formatEther to display a BigNumber: */}
-        <h2>Your Balance: {yourLocalBalance ? utils.formatEther(yourLocalBalance) : "..."}</h2>
-        <div>OR</div>
-        <Balance address={address} provider={localProvider} price={price} />
-        <Divider />
-        Your Contract Address:
-        <Address
-          address={readContracts && readContracts.Plottery ? readContracts.Plottery.address : null}
-          ensProvider={mainnetProvider}
-          fontSize={16}
-        />
         <Divider />
       </div>
 
