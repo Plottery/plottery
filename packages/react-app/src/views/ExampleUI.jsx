@@ -53,6 +53,7 @@ function GM({
 
 
   return (<div>
+
           <div>{ dealerKeys && dealerKeys.toNumber() > 0 ? 'You are a dealer' : 'You are NOT a dealer'}</div>
           Secret must be valid BigNumber text {errSecret ? 'ERROR! ' :''}: <Input
             onChange={e => {
@@ -201,6 +202,77 @@ function PlayGame({
     </div>);
 }
 
+function ClaimAirdrop({
+  address,
+  userSigner,
+  mainnetProvider,
+  localProvider,
+  yourLocalBalance,
+  tx,
+  readContracts,
+  writeContracts,
+}) {
+  //const airdropBal = useContractReader(readContracts, "MockNftPort", "balanceOf", [address]);
+  const airdropBal = useContractReader(readContracts, "NFTPort", "balanceOf", [address]);
+  const [newNum, setNewNum] = useState(9999);
+  const [errNum, setErrNum] = useState(false);
+
+  return (<div>
+          <h2>You have {airdropBal ? airdropBal.toString() : '...'} airdrops to claim</h2>
+
+          <Input value={newNum} style={{ width: 250, fontSize: 42 }}
+              onChange={e => {
+              try {
+                setErrNum(false);
+                let n = parseInt(e.target.value);
+                if (isNaN(n)) {
+                  console.log('NaN for ', e.target.value);
+                  n = 0;
+                }
+                if (n < 0 || n > 9999) {
+                  console.log(`${n} is out of range`);
+                  setErrNum(true);
+                } else {
+                  setNewNum(n);
+                }
+              } catch(err) {
+                setErrNum(true);
+                console.log("BAD INPUT! ", e.target.vaue);
+              }
+            }}
+          />
+          <Button
+            style={{ marginTop: 8 }}
+            onClick={async () => {
+              const result = await readContracts.MockNftPort.ownerOf(newNum);
+              console.log(result);
+            }}
+          >
+            Check Claim
+          </Button>
+          <Button
+            style={{ marginTop: 8 }}
+            onClick={async () => {
+              //const result = tx(writeContracts.MockNftPort.approve(readContracts.Tix.address, newNum), _dumpUpdate);
+              const result = tx(writeContracts.NFTPort.approve(readContracts.Tix.address, newNum), _dumpUpdate);
+              console.log("awaiting metamask/web3 confirm result...", result);
+              console.log(await result);
+            }}
+          >
+            Approve Airdrop 
+          </Button>
+          <Button
+            style={{ marginTop: 8 }}
+            onClick={async () => {
+              const result = tx(writeContracts.Tix.claimAirdrop(newNum), _dumpUpdate);
+              console.log("awaiting metamask/web3 confirm result...", result);
+              console.log(await result);
+            }}
+          >
+            Claim 
+          </Button>
+    </div>);
+}
 function TixForSale({
   address,
   userSigner,
@@ -243,8 +315,9 @@ function MyTix({
   readContracts,
   writeContracts,
 }) {
+  const [newNum, setNewNum] = useState(9999);
+  const [errNum, setErrNum] = useState(false);
   const tixBal = useContractReader(readContracts, "Tix", "balanceOf", [address]);
-  const tix1 = useContractReader(readContracts, "Tix", "tokenOfOwnerByIndex", [address, 0]);
   const tix = useContractReader(readContracts, "Plottery", "tixByAddress", [address]);
   const tixForSaleCount = useContractReader(readContracts, "Plottery", "tixForSaleCount");
 
@@ -252,11 +325,32 @@ function MyTix({
     <div>You have {tixBal ? tixBal.toString() : '...'} TIX</div>
     { tix ? tix.map(tokenId => <TixControl tx={tx} readContracts={readContracts} writeContracts={writeContracts} key={tokenId} tokenId={tokenId} />) : ''}
 
+        <Input value={newNum} style={{ width: 250, fontSize: 42 }}
+              onChange={e => {
+              try {
+                setErrNum(false);
+                let n = parseInt(e.target.value);
+                if (isNaN(n)) {
+                  console.log('NaN for ', e.target.value);
+                  n = 0;
+                }
+                if (n < 0 || n > 9999) {
+                  console.log(`${n} is out of range`);
+                  setErrNum(true);
+                } else {
+                  setNewNum(n);
+                }
+              } catch(err) {
+                setErrNum(true);
+                console.log("BAD INPUT! ", e.target.vaue);
+              }
+            }}
+        />
         <div>
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
-              const result = tx(writeContracts.BitCorn.approve(readContracts.Plottery.address, utils.parseEther("10")), _dumpUpdate);
+              const result = tx(writeContracts.BitCorn.approve(readContracts.Tix.address, utils.parseEther("100")), _dumpUpdate);
               console.log("awaiting metamask/web3 confirm result...", result);
               console.log(await result);
             }}
@@ -268,7 +362,7 @@ function MyTix({
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
-              const result = tx(writeContracts.Tix.mint(address), _dumpUpdate);
+              const result = tx(writeContracts.Tix.mint(address, newNum), _dumpUpdate);
               console.log("awaiting metamask/web3 confirm result...", result);
               console.log(await result);
             }}
@@ -282,6 +376,16 @@ function MyTix({
         </div>
         <div>
           <TixForSale 
+            address={address}
+            userSigner={userSigner}
+            mainnetProvider={mainnetProvider}
+            localProvider={localProvider}
+            yourLocalBalance={yourLocalBalance}
+            tx={tx}
+            writeContracts={writeContracts}
+            readContracts={readContracts}
+          />
+          <ClaimAirdrop 
             address={address}
             userSigner={userSigner}
             mainnetProvider={mainnetProvider}
@@ -420,7 +524,7 @@ function GoldenTicket({ }) {
   const [newMintErr, setNewMintErr] = useState('OK');
   const [newOSUrl, setNewOSUrl] = useState('');
   // https://testnets.opensea.io/assets/0x3539a35349c755081c319f9dcb1d9f1acf57381d/1073
-  const airdropees = ['0x7212f07cc038cC838B0B7F7AE236bf98dae221d4', '0x0fbFC78830Bf380A6F771F568Bf20bf0e20d6D74'];
+  const airdropees = ['0x7212f07cc038cC838B0B7F7AE236bf98dae221d4', '0x0fbFC78830Bf380A6F771F568Bf20bf0e20d6D74', "0x8eEd384d04c983Ee3a6E02AC2f57695F8BAa8534"];
   const [newRecipient, setNewRecipient] = useState(airdropees[0]);
 
   return (
@@ -429,22 +533,29 @@ function GoldenTicket({ }) {
       <div>
         <h2>Choose airdrop recipient</h2>
         <label style={{display: 'block'}}>
-          <input type="radio" className="nes-radio" name="answer" checked
+          <input type="radio" className="nes-radio" name="answer" defaultChecked
               onClick={e => {
                 console.log(e, e.target);
-                setNewRecipient(e.target.value);
+                setNewRecipient(airdropees[0]);
           }}/>
           <span>{airdropees[0]}</span>
         </label>
         <label style={{display: 'block'}}>
           <input type="radio" className="nes-radio" name="answer" 
               onClick={e => {
-                setNewRecipient(e.target.value);
+                setNewRecipient(airdropees[1]);
           }}/>
           <span>{airdropees[1]}</span>
         </label>
+        <label style={{display: 'block'}}>
+          <input type="radio" className="nes-radio" name="answer" 
+              onClick={e => {
+                setNewRecipient(airdropees[2]);
+          }}/>
+          <span>{airdropees[2]}</span>
+        </label>
       </div>
-    <div>minting to {newRecipient}</div>
+      <div>minting to {newRecipient}</div>
 
       <h2>Choose a lucky number from 0 to 9999</h2>
       <img src={ticketPng} width='50' />
@@ -475,7 +586,7 @@ function GoldenTicket({ }) {
 
       <h3>{newMintErr}</h3>
       <h2>View on OpenSea</h2>
-      <a href={newOSUrl}>link to #{newNum}</a>
+      <a href={newOSUrl} target="_blank">link to #{newNum}</a>
     </div>
   );
 }

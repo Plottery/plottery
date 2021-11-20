@@ -66,7 +66,7 @@ if (DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
 const scaffoldEthProvider = navigator.onLine
   ? new ethers.providers.StaticJsonRpcProvider("https://rpc.scaffoldeth.io:48544")
   : null;
-const poktMainnetProvider = navigator.onLine
+const poktMainnetProvider = null && navigator.onLine
   ? new ethers.providers.StaticJsonRpcProvider(
       "https://eth-mainnet.gateway.pokt.network/v1/lb/61853c567335c80036054a2b",
     )
@@ -477,6 +477,15 @@ function App(props) {
             */}
 
             <Contract
+              name="MockNftPort"
+              price={price}
+              signer={userSigner}
+              provider={localProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+              contractConfig={contractConfig}
+            />
+            <Contract
               name="DealerKey"
               price={price}
               signer={userSigner}
@@ -532,6 +541,18 @@ function App(props) {
               tx={tx}
               writeContracts={writeContracts}
               readContracts={readContracts}
+            />
+          </Route>
+          <Route path="/nftport">
+            <Contract
+              name="NFTPort"
+              customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.NFTPort}
+              signer={userSigner}
+              provider={mainnetProvider}
+              address={address}
+              blockExplorer="https://rinkeby.etherscan.io/"
+              contractConfig={contractConfig}
+              chainId={4}
             />
           </Route>
           <Route path="/mainnetdai">

@@ -23,11 +23,53 @@ contract BitCorn is ERC20, Ownable {
     }
 }
 
-contract Tix is ERC721, ERC721Enumerable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+contract MockNftPort is ERC721 {
+    constructor() ERC721("MockNftPort", "MOCK") {
+    }
+    function mint(address player, uint256 tokenId) public {
+        _mint(player, tokenId);
+    }
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId)
+      internal
+      override(ERC721)
+    {
+      super._beforeTokenTransfer(from, to, tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+      public
+      view
+      override(ERC721)
+      returns (bool)
+    {
+      return super.supportsInterface(interfaceId);
+    }
+}
+
+contract Tix is ERC721, ERC721Enumerable, Ownable {
+
+    IERC721 public claimToken; // make NFTport minted stuff usable
+    IERC20 public buyToken;
+    uint256 public tixSalePrice;
 
     constructor() ERC721("Tix", "TIX") {
+    }
+
+    function init(address _claimToken, address _buyToken) public onlyOwner {
+      //require(_tixToken == address(0), "Already initialized.");
+      claimToken = IERC721(_claimToken);
+      buyToken = IERC20(_buyToken);
+      setTixSalePrice(1 ether);
+    }
+
+    function claimAirdrop(uint256 tokenId) public {
+      claimToken.transferFrom(msg.sender, address(this), tokenId); // will be locked in contract forever
+      // assume reverts if already exists
+      _mint(msg.sender, tokenId);
+    }
+
+    function setTixSalePrice(uint256 price) public onlyOwner {
+        tixSalePrice = price;
     }
 
     function tokensByAddress(address owner) public view returns (uint256[] memory) {
@@ -39,13 +81,9 @@ contract Tix is ERC721, ERC721Enumerable {
         return ids;
     }
 
-    function mint(address player) public returns (uint256) {
-        _tokenIds.increment();
-
-        uint256 newItemId = _tokenIds.current();
-        _mint(player, newItemId);
-
-        return newItemId;
+    function mint(address player, uint256 tokenId) public {
+        buyToken.transferFrom(msg.sender, address(this), tixSalePrice);
+        _mint(player, tokenId);
     }
     function _beforeTokenTransfer(address from, address to, uint256 tokenId)
       internal
@@ -132,7 +170,7 @@ contract Plottery is Ownable {
     winToken = IERC20(_winToken);
 
     canEnter = true;
-    setTixSalePrice(1 ether);
+    tixSalePrice = 1 ether;
   }
   function jackpot() public view returns (uint256) {
     return winToken.balanceOf(address(this));
