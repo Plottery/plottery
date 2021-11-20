@@ -65,12 +65,46 @@ contract Tix is ERC721, ERC721Enumerable {
 
 }
 
+contract DealerKey is ERC721, ERC721Enumerable {
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIds;
+
+    constructor() ERC721("KEY", "DealerKey") {
+    }
+
+    function mint() public returns (uint256) {
+        _tokenIds.increment();
+
+        uint256 newItemId = _tokenIds.current();
+        _mint(msg.sender, newItemId);
+
+        return newItemId;
+    }
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId)
+      internal
+      override(ERC721, ERC721Enumerable)
+    {
+      super._beforeTokenTransfer(from, to, tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+      public
+      view
+      override(ERC721, ERC721Enumerable)
+      returns (bool)
+    {
+      return super.supportsInterface(interfaceId);
+    }
+
+}
+
 contract Plottery is Ownable {
 
   // event SetPurpose(address sender, string purpose);
 
   string public purpose = "Building Unstoppable Apps!!!";
   IERC721Enumerable public tixToken;
+  IERC721Enumerable public dealerToken;
   IERC20 public winToken; // also forSale token
   bytes32 private _secretHash;
   bool public canEnter;
@@ -91,9 +125,10 @@ contract Plottery is Ownable {
     // what should we do on deploy?
   }
 
-  function init(address _tixToken, address _winToken) public onlyOwner {
+  function init(address _tixToken, address _dealerToken, address _winToken) public onlyOwner {
     //require(_tixToken == address(0), "Already initialized.");
     tixToken = IERC721Enumerable(_tixToken);
+    dealerToken = IERC721Enumerable(_dealerToken);
     winToken = IERC20(_winToken);
 
     canEnter = true;
@@ -153,7 +188,7 @@ contract Plottery is Ownable {
   }
 
   function setTixSalePrice(uint256 price) public {
-    // check admin
+    require(dealerToken.balanceOf(msg.sender) != 0, "Not a dealer");
     tixSalePrice = price;
   }
 
@@ -166,8 +201,9 @@ contract Plottery is Ownable {
     emit Bought(msg.sender, tixId);
   }
 
-  function close(bytes32 secretHash) public onlyOwner {
+  function close(bytes32 secretHash) public /*onlyOwner*/ {
     require(canEnter, "To close, play must be open");
+    require(dealerToken.balanceOf(msg.sender) != 0, "Not a dealer");
     _secretHash = secretHash;
     canEnter = false;
     futureBlockNumber = block.number + 1; // bump to 16
@@ -188,8 +224,9 @@ contract Plottery is Ownable {
     stashedHash = blockhash(futureBlockNumber);
   }
 
-  function reveal(uint256 secret) public onlyOwner {
+  function reveal(uint256 secret) public /*onlyOwner*/ {
     bytes32 hash = keccak256(abi.encodePacked(secret, msg.sender));
+    require(dealerToken.balanceOf(msg.sender) != 0, "Not a dealer");
     require(hash == _secretHash, "Wrong secret");
     if (stashedHash == 0) {
       stashHash();

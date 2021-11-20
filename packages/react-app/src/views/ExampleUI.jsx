@@ -43,6 +43,7 @@ function GM({
 
   const hashfn = (secret, address) => utils.solidityKeccak256(['uint256', 'address'], [secret, address]);
   const futureBlockNumber = useContractReader(readContracts, "Plottery", "futureBlockNumber");
+  const dealerKeys = useContractReader(readContracts, "DealerKey", "balanceOf", [address]);
   
   //useOnBlock(mainnetProvider, () => {
   //  console.log(`⛓ A new mainnet block is here: ${mainnetProvider._lastBlockNumber}`);
@@ -52,7 +53,7 @@ function GM({
 
 
   return (<div>
-    <div>You are the dealer</div>
+          <div>{ dealerKeys && dealerKeys.toNumber() > 0 ? 'You are a dealer' : 'You are NOT a dealer'}</div>
           Secret must be valid BigNumber text {errSecret ? 'ERROR! ' :''}: <Input
             onChange={e => {
               try {
