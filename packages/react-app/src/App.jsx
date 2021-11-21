@@ -443,7 +443,7 @@ function App(props) {
     <div className="App">
       {/* ✏️ Edit the header and change the title to your project name */}
       <Header />
-      {networkDisplay}
+      {targetNetwork == NETWORKS.rinkeby ? '' : networkDisplay}
       <BrowserRouter>
         <Menu style={{ textAlign: "center", display: 'none' }} selectedKeys={[route]} mode="horizontal">
           <Menu.Item key="/">

@@ -26,7 +26,6 @@ export default function Events({ contracts, contractName, eventName, localProvid
 
   return (
     <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
-      <h2>Events:</h2>
       <List
         bordered
         dataSource={events}

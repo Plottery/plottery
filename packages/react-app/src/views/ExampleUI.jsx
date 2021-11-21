@@ -35,7 +35,7 @@ function TixControl({
   const [approved, setApproved] = useState(false);
   const [entered, setEntered] = useState(false);
 
-  return (<div style={{clear: 'both'}}>
+  return (<div style={{clear: 'both', marginTop: 20}}><section className={"nes-container is-notrounded "}>
       <div style={{display: 'inline-block'}}>
         <h2>Ticket #{('0000' + tokenId).slice(-5)}</h2>
       </div>
@@ -67,7 +67,7 @@ function TixControl({
           Enter Drawing
         </Button>
       </div>
-    </div>);
+    </section></div>);
 }
 
 function RecentWinners({
@@ -108,15 +108,15 @@ function PlayGame({
 
   return (<div>
       <div>
-        <section className={"nes-container " + (canEnter ? '' : "is-dark")}>
+        <section className={"nes-container is-rounded " + (canEnter ? '' : "is-dark")}>
             <section className="message -right" style={{marginTop: -50}}>
-              <div className={"nes-balloon from-right " + (canEnter ? '' : "is-dark")} style={{margin: 20}}>
+              <div className={"nes-balloon from-right " + (canEnter ? '' : "is-dark")} >
                 <p>{canEnter ? 'GM. Would you like to play a game?' : 'Stand by for round to close.'}</p>
               </div>
               <i className="nes-bcrikko" style={{top: 56}}></i>
             </section>
         </section>
-        <div className="nes-container with-title " style={{marginTop: 20}}>
+        <div className="nes-container is-rounded with-title " style={{marginTop: 20}}>
           <p className="title">Jackpot</p>
           <progress className="nes-progress is-success" value="50" max="100"></progress>
           <div>
@@ -146,8 +146,11 @@ function ClaimAirdrop({
   const airdropBal = useContractReader(readContracts, "NFTPort", "balanceOf", [address]);
   const [newNum, setNewNum] = useState(9999);
   const [errNum, setErrNum] = useState(false);
+  const [claimOwner, setClaimOwner] = useState(null);
 
-  return (<div>
+  return (
+        <div className="nes-container is-rounded with-title " style={{marginTop: 20}}>
+          <p className="title">Claim your airdrop</p>
           <h2>You have {airdropBal ? airdropBal.toString() : '...'} airdrops to claim</h2>
 
           <Input value={newNum} style={{ width: 250, fontSize: 42 }}
@@ -171,11 +174,17 @@ function ClaimAirdrop({
               }
             }}
           />
+          <div>Claim owner: {claimOwner ? claimOwner.toString() : '?'}</div>
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
-              const result = await readContracts.MockNftPort.ownerOf(newNum);
-              console.log(result);
+              try {
+                const result = await readContracts.NFTPort.ownerOf(newNum);
+                setClaimOwner(result);
+                console.log(result);
+              } catch(err) {
+                setClaimOwner('FAILED');
+              }
             }}
           >
             Check Claim
@@ -251,10 +260,14 @@ function MyTix({
   const tix = useContractReader(readContracts, "Plottery", "tixByAddress", [address]);
   const tixForSaleCount = useContractReader(readContracts, "Plottery", "tixForSaleCount");
 
-  return (<div>
+  return (
+        <div className="nes-container is-rounded with-title " style={{marginTop: 20}}>
+          <p className="title">Play your tickets</p>
     <div>You have {tixBal ? tixBal.toString() : '...'} TIX</div>
     { tix ? tix.map(tokenId => <TixControl tx={tx} readContracts={readContracts} writeContracts={writeContracts} key={tokenId} tokenId={tokenId} />) : ''}
 
+      <div className="nes-container is-rounded with-title " style={{marginTop: 20}}>
+        <p className="title">Buy tickets</p>
         <Input value={newNum} style={{ width: 250, fontSize: 42 }}
               onChange={e => {
               try {
@@ -285,7 +298,7 @@ function MyTix({
               console.log(await result);
             }}
           >
-            Approve Corn for Tix for Plottery to Buy
+            Approve {/*Corn for Tix for Plottery to Buy*/}
           </Button>
         </div>
         <div>
@@ -301,6 +314,7 @@ function MyTix({
           </Button>
         </div>
 
+        <Divider/>
         <div>
           Previously owned tickets for sale: ({tixForSaleCount ? tixForSaleCount.toString() : 0})
         </div>
@@ -315,17 +329,8 @@ function MyTix({
             writeContracts={writeContracts}
             readContracts={readContracts}
           />
-          <ClaimAirdrop 
-            address={address}
-            userSigner={userSigner}
-            mainnetProvider={mainnetProvider}
-            localProvider={localProvider}
-            yourLocalBalance={yourLocalBalance}
-            tx={tx}
-            writeContracts={writeContracts}
-            readContracts={readContracts}
-          />
         </div>
+      </div>
     </div>);
 }
 
@@ -345,8 +350,7 @@ export default function ExampleUI({
 
   return (
     <div>
-      <Divider/>
-      <div className="nes-container is-rounded" style={{ padding: 16, width: "auto", margin: "auto", marginTop: 64, marginBottom: 64 }}>
+      <div className="notnes-container is-rounded" style={{ padding: 16, width: "auto", margin: "0px 32px"}}>
         {readContracts ? <PlayGame 
             address={address}
             userSigner={userSigner}
@@ -380,47 +384,17 @@ export default function ExampleUI({
             writeContracts={writeContracts}
             readContracts={readContracts}
         /> : ''}
+        {readContracts ?  <ClaimAirdrop 
+          address={address}
+          userSigner={userSigner}
+          mainnetProvider={mainnetProvider}
+          localProvider={localProvider}
+          yourLocalBalance={yourLocalBalance}
+          tx={tx}
+          writeContracts={writeContracts}
+          readContracts={readContracts}
+        /> : ''}
       </div>
-      {/*
-        ⚙️ Here is an example UI that displays and sets the purpose in your smart contract:
-      */}
-
-      {/*
-        📑 Maybe display a list of events?
-          (uncomment the event and emit line in YourContract.sol! )
-      */}
-      <h2>Entered:</h2>
-      <Events
-        contracts={readContracts}
-        contractName="Plottery"
-        ensProvider={mainnetProvider}
-        eventName="Entered"
-        localProvider={localProvider}
-        mainnetProvider={mainnetProvider}
-        startBlock={1}
-      />
-
-      <h2>Closed:</h2>
-      <Events
-        contracts={readContracts}
-        contractName="Plottery"
-        ensProvider={mainnetProvider}
-        eventName="Closed"
-        localProvider={localProvider}
-        mainnetProvider={mainnetProvider}
-        startBlock={1}
-      />
-
-      <h2>SendPrize:</h2>
-      <Events
-        contracts={readContracts}
-        contractName="Plottery"
-        ensProvider={mainnetProvider}
-        eventName="SendPrize"
-        localProvider={localProvider}
-        mainnetProvider={mainnetProvider}
-        startBlock={1}
-      />
 
     </div>
   );

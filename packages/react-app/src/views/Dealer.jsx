@@ -181,6 +181,39 @@ export default function Dealer({
               readContracts={readContracts}
           /> : ''}
         <Divider />
+        <h2>Entered:</h2>
+        <Events
+          contracts={readContracts}
+          contractName="Plottery"
+          ensProvider={mainnetProvider}
+          eventName="Entered"
+          localProvider={localProvider}
+          mainnetProvider={mainnetProvider}
+          startBlock={1}
+        />
+
+        <h2>Closed:</h2>
+        <Events
+          contracts={readContracts}
+          contractName="Plottery"
+          ensProvider={mainnetProvider}
+          eventName="Closed"
+          localProvider={localProvider}
+          mainnetProvider={mainnetProvider}
+          startBlock={1}
+        />
+
+        <h2>SendPrize:</h2>
+        <Events
+          contracts={readContracts}
+          contractName="Plottery"
+          ensProvider={mainnetProvider}
+          eventName="SendPrize"
+          localProvider={localProvider}
+          mainnetProvider={mainnetProvider}
+          startBlock={1}
+        />
+
       </div>
   );
 }

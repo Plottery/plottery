@@ -16,4 +16,11 @@
     text-shadow: rgb(225, 178, 186) 2px 2px 0px;
     color: rgb(62, 169, 169);
     font-size: 30px;
+}
+
+@media all and (-webkit-min-device-pixel-ratio: 0) and (min-resolution: 0.001dpcm) {
+  .nes-container.is-rounded {
+    border-image-repeat: stretch;
   }
+}
+
