@@ -59,6 +59,7 @@ export default function GoldenTicket({ }) {
       // TODO check errors
       const fileRespJson = await response.json();
       console.log('posted tix ipfs: ', fileRespJson);
+      setImgIsSaved(true);
 
       // 2. Create metadata on IPFS
       url = 'https://api.nftport.xyz/v0/metadata';
@@ -77,6 +78,7 @@ export default function GoldenTicket({ }) {
         setNewMintErr(metadataRespJson.error);
       }
       console.log('posted metadata: ', metadataRespJson);
+      setMetadataIsSaved(true);
 
       // 3. Finally mint NFT
       url = 'https://api.nftport.xyz/v0/mints/customizable';
@@ -98,6 +100,7 @@ export default function GoldenTicket({ }) {
         setNewMintErr(nftRespJson.error);
       }
       console.log('posted nft: ', nftRespJson);
+      setNftIsMinted(true);
 
       setNewOSUrl(`https://testnets.opensea.io/assets/${myContract}/${newNum}`);
     });
@@ -105,6 +108,10 @@ export default function GoldenTicket({ }) {
 
   const [newNum, setNewNum] = useState(9999);
   const [errNum, setErrNum] = useState(false);
+  const [isDrawn, setIsDrawn] = useState(false);
+  const [imgIsSaved, setImgIsSaved] = useState(false);
+  const [metadataIsSaved, setMetadataIsSaved] = useState(false);
+  const [nftIsMinted, setNftIsMinted] = useState(false);
   const [newMintErr, setNewMintErr] = useState('OK');
   const [newOSUrl, setNewOSUrl] = useState('');
   // https://testnets.opensea.io/assets/0x3539a35349c755081c319f9dcb1d9f1acf57381d/1073
@@ -113,9 +120,9 @@ export default function GoldenTicket({ }) {
 
   return (
     <div>
-      <canvas id='canvas' width='490' height='270' ></canvas>
-      <div>
-        <h2>Choose airdrop recipient</h2>
+      <h1>NFTPort TIX Claim Airdrop</h1>
+      <div className="nes-container with-title " style={{marginTop: 20, marginBottom: 50}}>
+        <p className="title">Choose airdrop recipient</p>
         <label style={{display: 'block'}}>
           <input type="radio" className="nes-radio" name="answer" defaultChecked
               onClick={e => {
@@ -138,9 +145,12 @@ export default function GoldenTicket({ }) {
           }}/>
           <span>{airdropees[2]}</span>
         </label>
+        <Divider/>
+        <div>Minting to: {newRecipient}</div>
       </div>
-      <div>minting to {newRecipient}</div>
 
+      <h2>NFT Image on IPFS</h2>
+      <canvas id='canvas' width='490' height='270' ></canvas>
       <h2>Choose a lucky number from 0 to 9999</h2>
       <img src={ticketPng} width='50' />
       <button className='nes-btn is-foo' onClick={() => rand()} >randomize</button>
@@ -165,10 +175,13 @@ export default function GoldenTicket({ }) {
               }
             }}
       />
-      <button className='nes-btn is-warning' onClick={() => draw()} >draw</button>
-      <button className='nes-btn is-success' onClick={() => mint()} >mint</button>
+      <button className='nes-btn is-warning' onClick={() => { setIsDrawn(true); draw(); }} >draw</button>
+      <button className={'nes-btn is-' + (isDrawn ? 'success' : 'disabled')} onClick={() => mint()} >mint</button>
 
       <h3>{newMintErr}</h3>
+      <h3>IMG saved: {imgIsSaved ? 'Yes' : 'No'}</h3>
+      <h3>metadata saved: {metadataIsSaved ? 'Yes' : 'No'}</h3>
+      <h3>NFT minted: {nftIsMinted ? 'Yes' : 'No'}</h3>
       <h2>View on OpenSea</h2>
       <a href={newOSUrl} target="_blank">link to #{newNum}</a>
     </div>
