@@ -27,7 +27,7 @@ import externalContracts from "./contracts/external_contracts";
 import deployedContracts from "./contracts/hardhat_contracts.json";
 import { Transactor } from "./helpers";
 // import Hints from "./Hints";
-import { ExampleUI, GoldenTicket, Hints, Subgraph } from "./views";
+import { Dealer, ExampleUI, GoldenTicket, Hints, Subgraph } from "./views";
 
 const { ethers } = require("ethers");
 /*
@@ -532,6 +532,19 @@ function App(props) {
           </Route>
           <Route path="/goldenticket">
             <GoldenTicket />
+          </Route>
+          <Route path="/dealer">
+            <Dealer
+              address={address}
+              userSigner={userSigner}
+              mainnetProvider={mainnetProvider}
+              localProvider={localProvider}
+              yourLocalBalance={yourLocalBalance}
+              price={price}
+              tx={tx}
+              writeContracts={writeContracts}
+              readContracts={readContracts}
+            />
           </Route>
           <Route path="/plotteryui">
             <ExampleUI
