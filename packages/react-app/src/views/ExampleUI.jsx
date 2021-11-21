@@ -105,13 +105,15 @@ function PlayGame({
   const jackpot = /*100*/ useContractReader(readContracts, "Plottery", "jackpot");
   const canEnter = /*true*/ useContractReader(readContracts, "Plottery", "canEnter");
   const entryCount = useContractReader(readContracts, "Plottery", "entryCount");
+  const futureBlockNumber = useContractReader(readContracts, "Plottery", "futureBlockNumber");
 
   return (<div>
       <div>
-        <section className={"nes-container is-rounded " + (canEnter ? '' : "is-dark")}>
-            <section className="message -right" style={{marginTop: -50}}>
-              <div className={"nes-balloon from-right " + (canEnter ? '' : "is-dark")} >
-                <p>{canEnter ? 'GM. Would you like to play a game?' : 'Stand by for round to close.'}</p>
+        <section className={"nes-container is-rounded " + (canEnter ? '' : "is-dark")} style={{padding: 0}}>
+            <section className="message -right" style={{marginTop: 0}}>
+              <div className={"nes-balloon from-right " + (canEnter ? '' : "is-dark")} style={{maxWidth: '75%'}}>
+                <p>{canEnter ? 'GM. Would you like to play a game?' : `Stand by for round to close.`}</p>
+                <p>{canEnter ? '' : `Sometime after block ${futureBlockNumber}.`}</p>
               </div>
               <i className="nes-bcrikko" style={{top: 56}}></i>
             </section>
@@ -123,8 +125,9 @@ function PlayGame({
             <span style={{fontSize: 56}}>{ jackpot ? utils.formatEther(jackpot) : '..'}</span> <i className="nes-icon coin is-large"></i>
           </div>
           <progress className="nes-progress is-pattern" value="10" max="100"></progress>
-          <div>
-            <span >Currently Entered Tickets: {entryCount ? entryCount.toString() : '...'}</span>
+          <div style={{marginTop: 10}}>
+            <span >Currently Entered Tickets:</span>
+            <a href="#" className="nes-badge" style={{margin: '0px 10px', display: 'inline-flex'}}> <span class="is-success">{entryCount ? entryCount.toString() : '...'}</span></a>
           </div>
         </div>
       </div>
@@ -147,6 +150,7 @@ function ClaimAirdrop({
   const [newNum, setNewNum] = useState(9999);
   const [errNum, setErrNum] = useState(false);
   const [claimOwner, setClaimOwner] = useState(null);
+  const [approved, setApproved] = useState(false);
 
   return (
         <div className="nes-container is-rounded with-title " style={{marginTop: 20}}>
@@ -177,6 +181,7 @@ function ClaimAirdrop({
           <div>Claim owner: {claimOwner ? claimOwner.toString() : '?'}</div>
           <Button
             style={{ marginTop: 8 }}
+            className={'nes-btn is-warning'}
             onClick={async () => {
               try {
                 const result = await readContracts.NFTPort.ownerOf(newNum);
@@ -191,6 +196,8 @@ function ClaimAirdrop({
           </Button>
           <Button
             style={{ marginTop: 8 }}
+            className={'nes-btn ' + (approved ? '' : 'is-success')}
+            disabled={approved ? true : false}
             onClick={async () => {
               //const result = tx(writeContracts.MockNftPort.approve(readContracts.Tix.address, newNum), _dumpUpdate);
               const result = tx(writeContracts.NFTPort.approve(readContracts.Tix.address, newNum), _dumpUpdate);
@@ -202,6 +209,8 @@ function ClaimAirdrop({
           </Button>
           <Button
             style={{ marginTop: 8 }}
+            className={'nes-btn ' + (approved ? 'is-success' : '')}
+            disabled={approved ? false : true}
             onClick={async () => {
               const result = tx(writeContracts.Tix.claimAirdrop(newNum), _dumpUpdate);
               console.log("awaiting metamask/web3 confirm result...", result);
@@ -231,6 +240,7 @@ function TixForSale({
           </div>
 
           <Button
+            className={'nes-btn is-success'}
             style={{ marginTop: 8 }}
             onClick={async () => {
               const result = tx(writeContracts.Plottery.buyTix(tokenId), _dumpUpdate);
@@ -259,6 +269,7 @@ function MyTix({
   const tixBal = useContractReader(readContracts, "Tix", "balanceOf", [address]);
   const tix = useContractReader(readContracts, "Plottery", "tixByAddress", [address]);
   const tixForSaleCount = useContractReader(readContracts, "Plottery", "tixForSaleCount");
+  const [approved, setApproved] = useState(false);
 
   return (
         <div className="nes-container is-rounded with-title " style={{marginTop: 20}}>
@@ -292,6 +303,8 @@ function MyTix({
         <div>
           <Button
             style={{ marginTop: 8 }}
+            className={'nes-btn ' + (approved ? '': 'is-success')}
+            disabled={approved ? true : false}
             onClick={async () => {
               const result = tx(writeContracts.BitCorn.approve(readContracts.Tix.address, utils.parseEther("100")), _dumpUpdate);
               console.log("awaiting metamask/web3 confirm result...", result);
@@ -304,6 +317,8 @@ function MyTix({
         <div>
           <Button
             style={{ marginTop: 8 }}
+            className={'nes-btn ' + (approved ? 'is-success' : '')}
+            disabled={approved ? false : true}
             onClick={async () => {
               const result = tx(writeContracts.Tix.mint(address, newNum), _dumpUpdate);
               console.log("awaiting metamask/web3 confirm result...", result);
@@ -315,8 +330,9 @@ function MyTix({
         </div>
 
         <Divider/>
-        <div>
-          Previously owned tickets for sale: ({tixForSaleCount ? tixForSaleCount.toString() : 0})
+        <div style={{marginTop: 10}}>
+          <span>Used tickets for sale</span>
+          <a href="#" className="nes-badge" style={{margin: '0px 10px', display: 'inline-flex'}}> <span class="is-success">{tixForSaleCount ? tixForSaleCount.toString() : 0}</span></a>
         </div>
         <div>
           <TixForSale 
