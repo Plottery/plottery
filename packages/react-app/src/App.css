@@ -10,3 +10,10 @@
 .App, body {
     font-family: "PressStart2P";
 }
+
+.App .ant-page-header-heading-title {
+    cursor: pointer;
+    text-shadow: rgb(225, 178, 186) 2px 2px 0px;
+    color: rgb(62, 169, 169);
+    font-size: 30px;
+  }
