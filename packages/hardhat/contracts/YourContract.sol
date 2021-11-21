@@ -50,15 +50,17 @@ contract Tix is ERC721, ERC721Enumerable, Ownable {
 
     IERC721 public claimToken; // make NFTport minted stuff usable
     IERC20 public buyToken;
+    Plottery public plottery;
     uint256 public tixSalePrice;
 
     constructor() ERC721("Tix", "TIX") {
     }
 
-    function init(address _claimToken, address _buyToken) public onlyOwner {
+    function init(address _claimToken, address _buyToken, address _plottery) public onlyOwner {
       //require(_tixToken == address(0), "Already initialized.");
       claimToken = IERC721(_claimToken);
       buyToken = IERC20(_buyToken);
+      plottery = Plottery(_plottery);
       setTixSalePrice(1 ether);
     }
 
@@ -82,7 +84,8 @@ contract Tix is ERC721, ERC721Enumerable, Ownable {
     }
 
     function mint(address player, uint256 tokenId) public {
-        buyToken.transferFrom(msg.sender, address(this), tixSalePrice);
+        //buyToken.transferFrom(msg.sender, address(this), tixSalePrice);
+        buyToken.transferFrom(msg.sender, address(plottery), tixSalePrice);
         _mint(player, tokenId);
     }
     function _beforeTokenTransfer(address from, address to, uint256 tokenId)

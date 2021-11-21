@@ -76,7 +76,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
 
   console.log('set NFTport contract to claimToken');
   //await tix.init(/*nftportToken*/ mockNftPort.address, bitCorn.address);
-  await tix.init(nftportToken, bitCorn.address);
+  await tix.init(nftportToken, bitCorn.address, Plottery.address);
   
   console.log('mint a key and give to me');
   const keyId = await dealerKey.mint();

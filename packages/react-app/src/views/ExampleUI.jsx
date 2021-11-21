@@ -355,7 +355,7 @@ function MyTix({
               console.log(await result);
             }}
           >
-            Approve Corn to Buy
+            Approve Corn for Tix for Plottery to Buy
           </Button>
         </div>
         <div>
