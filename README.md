@@ -1,5 +1,7 @@
 # Plottery
 
+![plottery](https://user-images.githubusercontent.com/1016509/142757138-74cf6f34-0845-4852-b6b8-c90a4250c5de.png)
+
 # 🏄‍♂️ Quick Start
 
 ### Manual setup
